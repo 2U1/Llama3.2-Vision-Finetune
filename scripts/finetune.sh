@@ -4,14 +4,15 @@ MODEL_NAME="meta-llama/Llama-3.2-11B-Vision-Instruct"
 # MODEL_NAME="meta-llama/Llama-3.2-90B-Vision-Instruct"
 
 # LLaMA3.2-Vision Does not support flash-attnetion2 yet.
+# It only supports batch_size=1 for now.
 
 export PYTHONPATH=src:$PYTHONPATH
 
 deepspeed src/training/train.py \
     --deepspeed scripts/zero3_offload.json \
     --model_id $MODEL_NAME \
-    --data_path /home/workspace/description/traffic_sample.json \
-    --image_folder /home/workspace/dataset \
+    --data_path /path/to/your/training/data.json \
+    --image_folder /path/to/your/image/folder \
     --disable_flash_attn2 True \
     --lora_enable False \
     --tune_img_projector True \

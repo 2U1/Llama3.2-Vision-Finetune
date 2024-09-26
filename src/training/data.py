@@ -87,7 +87,7 @@ class LazySupervisedDataset(Dataset):
                 image_files = [image_files]
 
             images = []
-           
+        
             for image_file in image_files:
                 if not os.path.exists(image_file):
                     image_file = os.path.join(image_folder, image_file)
@@ -110,29 +110,27 @@ class LazySupervisedDataset(Dataset):
 
         sources = copy.deepcopy(llava_to_openai(sources['conversations'], is_video=is_video, num_frames=num_frames))
 
-        all_input_ids = [torch.tensor([128000])] # bos token id
-        all_labels = [torch.tensor([-100])] # ignore bos token
-        all_pixel_values = []
-        all_ratio_ids = []
-        all_ratio_mask = []
-        all_cross_attention_mask = []
+        input_text = processor.apply_chat_template(sources, add_generation_prompt=False)
+        inputs = processor(images=images, text=input_text, return_tensors="pt")
+
+        all_input_ids = [] 
+        all_labels = [] 
+        pixel_values = inputs['pixel_values']
+        aspect_ratio_ids = inputs['aspect_ratio_ids']
+        aspect_ratio_mask = inputs['aspect_ratio_mask']
+        cross_attention_mask = inputs['cross_attention_mask']
 
         for idx, j in enumerate(range(0, len(sources), 2)):
             user_input = sources[j]
             gpt_response = sources[j + 1]
-
-            user_input = f"{START_HEADER_TOKEN}{user_input['role']}{END_HEADER_TOKEN}\n\n{user_input['content']}{EOT_TOKEN}"
-            gpt_response = f"{START_HEADER_TOKEN}{gpt_response['role']}{END_HEADER_TOKEN}\n\n{gpt_response['content']}{EOT_TOKEN}"
+            gpt_response = f"{START_HEADER_TOKEN}{gpt_response['role']}{END_HEADER_TOKEN}\n\n{gpt_response['content'][0]['text']}{EOT_TOKEN}"
 
             if idx == 0:
-                inputs = processor(text=user_input, images=images, return_tensors='pt')
-                prompt_input_ids = inputs['input_ids']
-                all_pixel_values.append(inputs['pixel_values'])
-                all_ratio_ids.append(inputs['aspect_ratio_ids'])
-                all_ratio_mask.append(inputs['aspect_ratio_mask'])
-                all_cross_attention_mask.append(inputs['cross_attention_mask'])
+                user_input = processor.apply_chat_template([user_input], add_generation_prompt=False)
+                prompt_input_ids = processor.tokenizer(user_input, add_special_tokens=False, return_tensors='pt')['input_ids']
 
             else:
+                user_input = f"{START_HEADER_TOKEN}{user_input['role']}{END_HEADER_TOKEN}\n\n{user_input['content'][0]['text']}{EOT_TOKEN}"
                 prompt_input_ids = processor.tokenizer(user_input, add_special_tokens=False, return_tensors='pt')['input_ids']
 
             response_input_ids = processor.tokenizer(gpt_response, add_special_tokens=False, return_tensors='pt')['input_ids']
@@ -148,14 +146,9 @@ class LazySupervisedDataset(Dataset):
 
             all_input_ids.append(input_ids)
             all_labels.append(labels)
-        
+
         input_ids = torch.cat(all_input_ids, dim=0).to(torch.long)
         labels = torch.cat(all_labels, dim=0).to(torch.long)
-
-        pixel_values = torch.cat(all_pixel_values, dim=0)
-        aspect_ratio_ids = torch.cat(all_ratio_ids, dim=0)
-        aspect_ratio_mask = torch.cat(all_ratio_mask, dim=0)
-        cross_attention_mask = torch.cat(all_cross_attention_mask, dim=0)
 
         attention_mask = (input_ids > -1000000).to(torch.long)
 
@@ -171,7 +164,6 @@ class LazySupervisedDataset(Dataset):
         
         return data_dict
 
-@dataclass
 class DataCollatorForSupervisedDataset(object):
     """Collate examples for supervised fine-tuning."""
 
@@ -216,11 +208,20 @@ class DataCollatorForSupervisedDataset(object):
         }
     
 
-def replace_image_tokens(input_string):
+def replace_image_tokens(input_string, start_count=0):
 
-    input_string = input_string.replace(LLAVA_IMAGE_TOKEN+'\n', f"<|image|>")
+    count = start_count
+    has_image = False
 
-    return input_string
+    if LLAVA_IMAGE_TOKEN not in input_string:
+        return input_string, count, has_image
+
+    while LLAVA_IMAGE_TOKEN in input_string:
+        has_image = True
+        input_string = input_string.replace(LLAVA_IMAGE_TOKEN+'\n', '', 1)
+        count += 1
+
+    return input_string, count, has_image
 
 def video_to_image_tokens(input_string, num_frames):
 
@@ -234,14 +235,20 @@ def llava_to_openai(conversations, is_video=False, num_frames=None):
     role_mapping = {"human": "user", "gpt": "assistant"}
 
     transformed_data = []
+    image_count = 0
     for conversation in conversations:
         if is_video:
             conversation['value'] = video_to_image_tokens(conversation["value"], num_frames)
         
-        transformed_content = replace_image_tokens(conversation["value"])
+        transformed_content, image_count, has_image = replace_image_tokens(conversation["value"], image_count)
+        content = []
+        if has_image:
+            for _ in range(image_count):
+                content.append({"type":"image"})
+        content.append({"type":"text", "text":transformed_content})
         transformed_entry = {
             "role": role_mapping.get(conversation["from"], conversation["from"]),
-            "content": transformed_content,
+            "content": content,
         }
         transformed_data.append(transformed_entry)
 

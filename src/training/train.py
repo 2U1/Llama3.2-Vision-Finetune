@@ -96,12 +96,11 @@ def train():
             )
         ))
 
-
     model = MllamaForConditionalGeneration.from_pretrained(
         model_args.model_id,
         torch_dtype=compute_dtype,
         cache_dir=training_args.cache_dir, 
-        _attn_implementation="flash_attention_2" if not training_args.disable_flash_attn2 else "sdpa", 
+        attn_implementation="flash_attention_2" if not training_args.disable_flash_attn2 else "sdpa", 
         **bnb_model_from_pretrained_args
     )
 
