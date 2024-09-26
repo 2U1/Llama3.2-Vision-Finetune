@@ -4,7 +4,8 @@ MODEL_NAME="meta-llama/Llama-3.2-11B-Vision-Instruct"
 # MODEL_NAME="meta-llama/Llama-3.2-90B-Vision-Instruct"
 
 # LLaMA3.2-Vision Does not support flash-attnetion2 yet.
-# It only supports batch_size=1 for now.
+# Need test for batch size > 1
+# Leave a issue after testing this script with batch_size > 1
 
 export PYTHONPATH=src:$PYTHONPATH
 
@@ -23,7 +24,9 @@ deepspeed src/training/train.py \
     --num_train_epochs 1 \
     --per_device_train_batch_size 1 \
     --gradient_accumulation_steps 1 \
-    --learning_rate 1e-6 \
+    --learning_rate 1e-5 \
+    --projector_lr 1e-5 \
+    --vision_lr 2e-6 \
     --weight_decay 0. \
     --warmup_ratio 0.03 \
     --lr_scheduler_type "cosine" \

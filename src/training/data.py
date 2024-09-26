@@ -5,6 +5,7 @@ from typing import Dict
 
 import torch
 import transformers
+from transformers.models.mllama.processing_mllama import get_cross_attention_token_mask, convert_sparse_cross_attention_mask_to_dense
 import ujson as json
 from PIL import Image
 from torch.utils.data import Dataset
@@ -120,6 +121,8 @@ class LazySupervisedDataset(Dataset):
         aspect_ratio_mask = inputs['aspect_ratio_mask']
         cross_attention_mask = inputs['cross_attention_mask']
 
+        del inputs
+
         for idx, j in enumerate(range(0, len(sources), 2)):
             user_input = sources[j]
             gpt_response = sources[j + 1]
@@ -167,8 +170,9 @@ class LazySupervisedDataset(Dataset):
 class DataCollatorForSupervisedDataset(object):
     """Collate examples for supervised fine-tuning."""
 
-    def __init__(self, pad_token_id: int):
+    def __init__(self, pad_token_id: int, processor: transformers.ProcessorMixin):
         self.pad_token_id = pad_token_id
+        self.processor = processor
 
     def __call__(self, examples):
         batch_input_ids = []
@@ -184,18 +188,23 @@ class DataCollatorForSupervisedDataset(object):
             batch_pixel_values.append(example["pixel_values"])
             batch_aspect_ratio_ids.append(example["aspect_ratio_ids"])
             batch_aspect_ratio_mask.append(example["aspect_ratio_mask"])
-            batch_cross_attention_mask.append(example["cross_attention_mask"])
+            batch_cross_attention_mask.append(example["cross_attention_mask"][0])
         
         input_ids = pad_sequence(
             batch_input_ids, padding_side='right', padding_value=self.pad_token_id
         )
 
+        cross_attention_mask = pad_sequence(
+            batch_cross_attention_mask, padding_side='right', padding_value=0
+        )
+        
         attention_mask = input_ids != self.pad_token_id
         labels = pad_sequence(batch_label_ids, padding_side='right', padding_value=IGNORE_INDEX)
         pixel_values = torch.cat(batch_pixel_values, dim=0)
         aspect_ratio_ids = torch.cat(batch_aspect_ratio_ids, dim=0)
         aspect_ratio_mask = torch.cat(batch_aspect_ratio_mask, dim=0)
-        cross_attention_mask = torch.cat(batch_cross_attention_mask, dim=0)
+
+        # cross_attention_mask = torch.cat(batch_cross_attention_mask, dim=0)
 
         return {
             'input_ids': input_ids,

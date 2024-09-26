@@ -9,13 +9,24 @@ This repository contains a script for training [Llama3.2-Vision](https://hugging
 
 ## Table of Contents
 
-- [Installation](#installation)
-  - [Using `environment.yaml`](#using-environmentyaml)
-- [Dataset Preparation](#dataset-preparation)
-- [Training](#training)
-  - [Full Finetuning](#full-finetuning)
-  - [Finetune with LoRA](#finetune-with-lora)
-    - [Merge LoRA Weights](#merge-lora-weights)
+- [Fine-tuning Llama3.2-Vision](#fine-tuning-llama32-vision)
+  - [Other projects](#other-projects)
+  - [Table of Contents](#table-of-contents)
+  - [Supported Features](#supported-features)
+  - [Installation](#installation)
+    - [Using `environment.yaml`](#using-environmentyaml)
+  - [Dataset Preparation](#dataset-preparation)
+  - [Training](#training)
+    - [Full Finetuning](#full-finetuning)
+    - [Finetune with LoRA](#finetune-with-lora)
+    - [Train with video dataset](#train-with-video-dataset)
+      - [Merge LoRA Weights](#merge-lora-weights)
+      - [Issue for libcudnn error](#issue-for-libcudnn-error)
+  - [TODO](#todo)
+  - [Known Issues](#known-issues)
+  - [License](#license)
+  - [Citation](#citation)
+  - [Acknowledgement](#acknowledgement)
 
 ## Supported Features
 
@@ -139,7 +150,7 @@ The script requires a dataset formatted according to the LLaVA specification. Th
 
 ## Training
 
-**Important:** It supports only batch_size 1 for now.
+**Important:** ~~It supports only batch_size 1 for now.~~ Need to test `batch_size > 1 `. Leave me issue after testing it please.
 
 To run the training script, use the following command:
 
