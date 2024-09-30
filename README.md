@@ -5,7 +5,8 @@ This repository contains a script for training [Llama3.2-Vision](https://hugging
 ## Other projects
 
 **[[Phi3-Vision Finetuning]](https://github.com/2U1/Phi3-Vision-Finetune)**<br>
-**[[Qwen2-VL Finetuning]](https://github.com/2U1/Qwen2-VL-Finetune)**
+**[[Qwen2-VL Finetuning]](https://github.com/2U1/Qwen2-VL-Finetune)**<br>
+**[[Molmo Finetuning]](https://github.com/2U1/Molmo-Finetune)**
 
 ## Table of Contents
 
