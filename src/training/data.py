@@ -126,17 +126,16 @@ class LazySupervisedDataset(Dataset):
         for idx, j in enumerate(range(0, len(sources), 2)):
             user_input = sources[j]
             gpt_response = sources[j + 1]
-            gpt_response = f"{gpt_response['content'][0]['text']}{EOT_TOKEN}\n"
-
+            gpt_prompt = f"{gpt_response['content'][0]['text']}{EOT_TOKEN}\n"
             if idx == 0:
-                user_input = processor.apply_chat_template([user_input], add_generation_prompt=True)
-                prompt_input_ids = processor.tokenizer(user_input, add_special_tokens=False, return_tensors='pt')['input_ids']
+                user_prompt = processor.apply_chat_template([user_input], add_generation_prompt=True)
+                prompt_input_ids = processor.tokenizer(user_prompt, add_special_tokens=False, return_tensors='pt')['input_ids']
 
             else:
-                user_input = f"{START_HEADER_TOKEN}{user_input['role']}{END_HEADER_TOKEN}\n\n{user_input['content'][0]['text']}{EOT_TOKEN}\n{START_HEADER_TOKEN}{gpt_response['role']}{END_HEADER_TOKEN}\n\n"
-                prompt_input_ids = processor.tokenizer(user_input, add_special_tokens=False, return_tensors='pt')['input_ids']
+                user_prompt = f"{START_HEADER_TOKEN}{user_input['role']}{END_HEADER_TOKEN}\n\n{user_input['content'][0]['text']}{EOT_TOKEN}\n{START_HEADER_TOKEN}{gpt_response['role']}{END_HEADER_TOKEN}\n\n"
+                prompt_input_ids = processor.tokenizer(user_prompt, add_special_tokens=False, return_tensors='pt')['input_ids']
 
-            response_input_ids = processor.tokenizer(gpt_response, add_special_tokens=False, return_tensors='pt')['input_ids']
+            response_input_ids = processor.tokenizer(gpt_prompt, add_special_tokens=False, return_tensors='pt')['input_ids']
 
             input_ids = torch.cat([prompt_input_ids, response_input_ids], dim=1).squeeze(0)
             labels = torch.cat(
