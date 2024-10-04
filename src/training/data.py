@@ -111,15 +111,20 @@ class LazySupervisedDataset(Dataset):
 
         sources = copy.deepcopy(llava_to_openai(sources['conversations'], is_video=is_video, num_frames=num_frames))
 
-        input_text = processor.apply_chat_template(sources, add_generation_prompt=False)
-        inputs = processor(images=images, text=input_text, return_tensors="pt")
-
         all_input_ids = [] 
-        all_labels = [] 
-        pixel_values = inputs['pixel_values']
-        aspect_ratio_ids = inputs['aspect_ratio_ids']
-        aspect_ratio_mask = inputs['aspect_ratio_mask']
-        cross_attention_mask = inputs['cross_attention_mask']
+        all_labels = []
+        pixel_values = None
+        aspect_ratio_ids = None
+        aspect_ratio_mask = None
+        cross_attention_mask = None
+
+        if images is not None:
+            input_text = processor.apply_chat_template(sources, add_generation_prompt=False)
+            inputs = processor(images=images, text=input_text, return_tensors="pt")
+            pixel_values = inputs['pixel_values']
+            aspect_ratio_ids = inputs['aspect_ratio_ids']
+            aspect_ratio_mask = inputs['aspect_ratio_mask']
+            cross_attention_mask = inputs['cross_attention_mask']
 
         del inputs
 
@@ -184,26 +189,29 @@ class DataCollatorForSupervisedDataset(object):
         for example in examples:
             batch_input_ids.append(example["input_ids"])
             batch_label_ids.append(example["labels"])
-            batch_pixel_values.append(example["pixel_values"])
-            batch_aspect_ratio_ids.append(example["aspect_ratio_ids"])
-            batch_aspect_ratio_mask.append(example["aspect_ratio_mask"])
-            batch_cross_attention_mask.append(example["cross_attention_mask"][0])
-        
+            batch_pixel_values.append(example.get("pixel_values"))
+            batch_aspect_ratio_ids.append(example.get("aspect_ratio_ids"))
+            batch_aspect_ratio_mask.append(example.get("aspect_ratio_mask"))
+            batch_cross_attention_mask.append(
+                example.get("cross_attention_mask", [None])[0] if example.get("cross_attention_mask") else None
+            )
+                
         input_ids = pad_sequence(
             batch_input_ids, padding_side='right', padding_value=self.pad_token_id
         )
 
         cross_attention_mask = pad_sequence(
-            batch_cross_attention_mask, padding_side='right', padding_value=0
+            [cam for cam in batch_cross_attention_mask if cam is not None], padding_side='right', padding_value=0
+        )
+        
+        labels = pad_sequence(
+            batch_label_ids, padding_side='right', padding_value=IGNORE_INDEX
         )
         
         attention_mask = input_ids != self.pad_token_id
-        labels = pad_sequence(batch_label_ids, padding_side='right', padding_value=IGNORE_INDEX)
-        pixel_values = torch.cat(batch_pixel_values, dim=0)
-        aspect_ratio_ids = torch.cat(batch_aspect_ratio_ids, dim=0)
-        aspect_ratio_mask = torch.cat(batch_aspect_ratio_mask, dim=0)
-
-        # cross_attention_mask = torch.cat(batch_cross_attention_mask, dim=0)
+        pixel_values = torch.cat([pv for pv in batch_pixel_values if pv is not None], dim=0) if any(batch_pixel_values) else None
+        aspect_ratio_ids = torch.cat([ar for ar in batch_aspect_ratio_ids if ar is not None], dim=0) if any(batch_aspect_ratio_ids) else None
+        aspect_ratio_mask = torch.cat([am for am in batch_aspect_ratio_mask if am is not None], dim=0) if any(batch_aspect_ratio_mask) else None
 
         return {
             'input_ids': input_ids,

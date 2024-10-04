@@ -8,6 +8,10 @@ This repository contains a script for training [Llama3.2-Vision](https://hugging
 **[[Qwen2-VL Finetuning]](https://github.com/2U1/Qwen2-VL-Finetune)**<br>
 **[[Molmo Finetuning]](https://github.com/2U1/Molmo-Finetune)**
 
+## Update
+
+- [2024/10/04] Supports text-only data.
+
 ## Table of Contents
 
 - [Fine-tuning Llama3.2-Vision](#fine-tuning-llama32-vision)

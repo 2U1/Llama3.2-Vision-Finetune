@@ -137,7 +137,6 @@ def train():
 
     processor = AutoProcessor.from_pretrained(model_args.model_id)
     
-
     # use unk rather than eos token to prevent endless generation
     processor.tokenizer.padding_side = 'right'
 
