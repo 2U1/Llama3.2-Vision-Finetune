@@ -155,8 +155,6 @@ The script requires a dataset formatted according to the LLaVA specification. Th
 
 ## Training
 
-**Important:** ~~It supports only batch_size 1 for now.~~ Need to test `batch_size > 1 `. Leave me issue after testing it please.
-
 To run the training script, use the following command:
 
 ### Full Finetuning
