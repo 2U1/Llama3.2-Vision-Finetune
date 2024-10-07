@@ -213,16 +213,20 @@ class DataCollatorForSupervisedDataset(object):
         aspect_ratio_ids = torch.cat([ar for ar in batch_aspect_ratio_ids if ar is not None], dim=0) if any(batch_aspect_ratio_ids) else None
         aspect_ratio_mask = torch.cat([am for am in batch_aspect_ratio_mask if am is not None], dim=0) if any(batch_aspect_ratio_mask) else None
 
-        return {
-            'input_ids': input_ids,
-            'labels': labels,
-            'attention_mask': attention_mask,
-            'pixel_values': pixel_values,
-            'aspect_ratio_ids': aspect_ratio_ids,
-            'aspect_ratio_mask': aspect_ratio_mask,
-            'cross_attention_mask': cross_attention_mask,
-        }
-    
+
+        batch_dict = dict(
+            input_ids=input_ids,
+            labels=labels,
+            attention_mask=attention_mask,
+        )
+
+        if pixel_values is not None:
+            batch_dict['pixel_values'] = pixel_values
+            batch_dict['aspect_ratio_ids'] = aspect_ratio_ids
+            batch_dict['aspect_ratio_mask'] = aspect_ratio_mask
+            batch_dict['cross_attention_mask'] = cross_attention_mask
+
+        return batch_dict
 
 def replace_image_tokens(input_string, start_count=0):
 

@@ -10,7 +10,7 @@ This repository contains a script for training [Llama3.2-Vision](https://hugging
 
 ## Update
 
-- [2024/10/04] Supports text-only data.
+- [2024/10/04] 🔥Supports text-only data.
 
 ## Table of Contents
 
