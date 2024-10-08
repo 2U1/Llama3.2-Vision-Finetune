@@ -40,9 +40,8 @@ def maybe_zero_3(param, ignore_status=False, name=None):
 
 class LLamaVTrainer(Trainer):
 
-    def __init__(self, *args, processor: Optional[ProcessorMixin] = None, **kwargs):
+    def __init__(self, *args, **kwargs):
         super(LLamaVTrainer, self).__init__(*args, **kwargs)
-        self.processor = processor
 
     def create_optimizer(self):
         """
@@ -210,9 +209,6 @@ class LLamaVTrainer(Trainer):
 
             if self.tokenizer is not None:
                 self.tokenizer.save_pretrained(output_dir)
-
-            if self.processor is not None:
-                self.processor.save_pretrained(output_dir)
 
             # Good practice: save your training arguments together with the trained model
             torch.save(self.args, os.path.join(output_dir, TRAINING_ARGS_NAME))

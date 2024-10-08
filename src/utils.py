@@ -67,7 +67,7 @@ def load_pretrained_model(model_path, model_base, model_name, load_8bit=False, l
         print('Model Loaded!!!')
     
     else:
-        processor = AutoProcessor.from_pretrained(model_path, trust_remote_code=True)
+        processor = AutoProcessor.from_pretrained(model_base, trust_remote_code=True)
         model = AutoModelForCausalLM.from_pretrained(model_path, low_cpu_mem_usage=True, trust_remote_code=True, **kwargs)
 
     return processor, model
