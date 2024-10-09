@@ -279,7 +279,7 @@ def make_supervised_data_module(processor, data_args):
     sft_dataset = LazySupervisedDataset(
         data_path=data_args.data_path, processor=processor, data_args=data_args
     )
-    data_collator = DataCollatorForSupervisedDataset(pad_token_id=processor.tokenizer.pad_token_id)
+    data_collator = DataCollatorForSupervisedDataset(pad_token_id=processor.tokenizer.pad_token_id, processor=processor)
 
     return dict(train_dataset=sft_dataset,
                 eval_dataset=None,
