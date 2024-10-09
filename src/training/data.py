@@ -124,7 +124,7 @@ class LazySupervisedDataset(Dataset):
             pixel_values = inputs['pixel_values']
             aspect_ratio_ids = inputs['aspect_ratio_ids']
             aspect_ratio_mask = inputs['aspect_ratio_mask']
-            cross_attention_mask = inputs['cross_attention_mask']
+            cross_attention_mask = inputs['cross_attention_mask'].squeeze(0)
 
         del inputs
 
@@ -192,17 +192,16 @@ class DataCollatorForSupervisedDataset(object):
             batch_pixel_values.append(example.get("pixel_values"))
             batch_aspect_ratio_ids.append(example.get("aspect_ratio_ids"))
             batch_aspect_ratio_mask.append(example.get("aspect_ratio_mask"))
-            batch_cross_attention_mask.append(
-                example.get("cross_attention_mask", [None])[0] if example.get("cross_attention_mask") else None
-            )
+            batch_cross_attention_mask.append(example.get("cross_attention_mask"))
                 
         input_ids = pad_sequence(
             batch_input_ids, padding_side='right', padding_value=self.pad_token_id
         )
 
-        cross_attention_mask = pad_sequence(
-            [cam for cam in batch_cross_attention_mask if cam is not None], padding_side='right', padding_value=0
-        )
+        if cross_attention_mask is not None:
+            cross_attention_mask = pad_sequence(
+                [cam.squeeze(0) for cam in batch_cross_attention_mask if cam is not None], padding_side='right', padding_value=0
+            )
         
         labels = pad_sequence(
             batch_label_ids, padding_side='right', padding_value=IGNORE_INDEX
