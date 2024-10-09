@@ -209,9 +209,9 @@ class DataCollatorForSupervisedDataset(object):
         )
         
         attention_mask = input_ids != self.pad_token_id
-        pixel_values = torch.cat([pv for pv in batch_pixel_values if pv is not None], dim=0) if any(batch_pixel_values) else None
-        aspect_ratio_ids = torch.cat([ar for ar in batch_aspect_ratio_ids if ar is not None], dim=0) if any(batch_aspect_ratio_ids) else None
-        aspect_ratio_mask = torch.cat([am for am in batch_aspect_ratio_mask if am is not None], dim=0) if any(batch_aspect_ratio_mask) else None
+        pixel_values = torch.cat([pv for pv in batch_pixel_values if pv is not None and pv.numel() > 0], dim=0) if any(pv is not None and pv.numel() > 0 for pv in batch_pixel_values) else None
+        aspect_ratio_ids = torch.cat([ar for ar in batch_aspect_ratio_ids if ar is not None and ar.numel() > 0], dim=0) if any(ar is not None and ar.numel() > 0 for ar in batch_aspect_ratio_ids) else None
+        aspect_ratio_mask = torch.cat([am for am in batch_aspect_ratio_mask if am is not None and am.numel() > 0], dim=0) if any(am is not None and am.numel() > 0 for am in batch_aspect_ratio_mask) else None
 
 
         batch_dict = dict(
