@@ -198,9 +198,10 @@ class DataCollatorForSupervisedDataset(object):
             batch_input_ids, padding_side='right', padding_value=self.pad_token_id
         )
 
-        if cross_attention_mask is not None:
+        if not all(item is None for item in batch_cross_attention_mask):
+            batch_cross_attention_mask = [cam for cam in batch_cross_attention_mask if cam is not None]
             cross_attention_mask = pad_sequence(
-                [cam for cam in batch_cross_attention_mask if cam is not None], padding_side='right', padding_value=0
+                batch_cross_attention_mask, padding_side='right', padding_value=0
             )
         
         labels = pad_sequence(
