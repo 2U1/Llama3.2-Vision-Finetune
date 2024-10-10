@@ -45,10 +45,10 @@ def load_pretrained_model(model_path, model_base, model_name, load_8bit=False, l
         processor = AutoProcessor.from_pretrained(model_base, trust_remote_code=True)
         print('Loading LLama3.2-Vision from base model...')
         model = AutoModelForCausalLM.from_pretrained(model_base, low_cpu_mem_usage=True, config=lora_cfg_pretrained, trust_remote_code=True, **kwargs)
-        token_num, tokem_dim = model.lm_head.out_features, model.lm_head.in_features
-        if model.lm_head.weight.shape[0] != token_num:
-            model.lm_head.weight = torch.nn.Parameter(torch.empty(token_num, tokem_dim, device=model.device, dtype=model.dtype))
-            model.model.embed_tokens.weight = torch.nn.Parameter(torch.empty(token_num, tokem_dim, device=model.device, dtype=model.dtype))
+        token_num, tokem_dim = model.language_model.lm_head.out_features, model.language_model.lm_head.in_features
+        if model.language_model.lm_head.weight.shape[0] != token_num:
+            model.language_model.lm_head.weight = torch.nn.Parameter(torch.empty(token_num, tokem_dim, device=model.device, dtype=model.dtype))
+            model.language_model.model.embed_tokens.weight = torch.nn.Parameter(torch.empty(token_num, tokem_dim, device=model.device, dtype=model.dtype))
 
         print('Loading LLama3.2-Vision from base model...')
         non_lora_trainables = torch.load(os.path.join(model_path, 'non_lora_state_dict.bin'), map_location='cpu')
