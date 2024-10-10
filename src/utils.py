@@ -1,6 +1,6 @@
 from peft import PeftModel
 import torch
-from transformers import BitsAndBytesConfig, AutoModelForCausalLM, AutoProcessor, AutoConfig
+from transformers import BitsAndBytesConfig, MllamaForConditionalGeneration, AutoProcessor, AutoConfig
 import warnings
 import os
 import json
@@ -44,7 +44,8 @@ def load_pretrained_model(model_path, model_base, model_name, load_8bit=False, l
 
         processor = AutoProcessor.from_pretrained(model_base, trust_remote_code=True)
         print('Loading LLama3.2-Vision from base model...')
-        model = AutoModelForCausalLM.from_pretrained(model_base, low_cpu_mem_usage=True, config=lora_cfg_pretrained, trust_remote_code=True, **kwargs)
+
+        model = MllamaForConditionalGeneration.from_pretrained(model_base, low_cpu_mem_usage=True, config=lora_cfg_pretrained, trust_remote_code=True, **kwargs)
         token_num, tokem_dim = model.language_model.lm_head.out_features, model.language_model.lm_head.in_features
         if model.language_model.lm_head.weight.shape[0] != token_num:
             model.language_model.lm_head.weight = torch.nn.Parameter(torch.empty(token_num, tokem_dim, device=model.device, dtype=model.dtype))
@@ -68,7 +69,7 @@ def load_pretrained_model(model_path, model_base, model_name, load_8bit=False, l
     
     else:
         processor = AutoProcessor.from_pretrained(model_base, trust_remote_code=True)
-        model = AutoModelForCausalLM.from_pretrained(model_path, low_cpu_mem_usage=True, trust_remote_code=True, **kwargs)
+        model = MllamaForConditionalGeneration.from_pretrained(model_path, low_cpu_mem_usage=True, trust_remote_code=True, **kwargs)
 
     return processor, model
 
