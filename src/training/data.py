@@ -120,7 +120,7 @@ class LazySupervisedDataset(Dataset):
 
         if images is not None:
             input_text = processor.apply_chat_template(sources, add_generation_prompt=False)
-            inputs = processor(images=images, text=input_text, return_tensors="pt")
+            inputs = processor(images=images, text=input_text, add_special_tokens=False, return_tensors="pt")
             pixel_values = inputs['pixel_values']
             aspect_ratio_ids = inputs['aspect_ratio_ids']
             aspect_ratio_mask = inputs['aspect_ratio_mask']
@@ -131,13 +131,13 @@ class LazySupervisedDataset(Dataset):
         for idx, j in enumerate(range(0, len(sources), 2)):
             user_input = sources[j]
             gpt_response = sources[j + 1]
-            gpt_prompt = f"{gpt_response['content'][0]['text']}{EOT_TOKEN}\n"
+            gpt_prompt = f"{gpt_response['content'][0]['text']}{EOT_TOKEN}"
             if idx == 0:
                 user_prompt = processor.apply_chat_template([user_input], add_generation_prompt=True)
                 prompt_input_ids = processor.tokenizer(user_prompt, add_special_tokens=False, return_tensors='pt')['input_ids']
 
             else:
-                user_prompt = f"{START_HEADER_TOKEN}{user_input['role']}{END_HEADER_TOKEN}\n\n{user_input['content'][0]['text']}{EOT_TOKEN}\n{START_HEADER_TOKEN}{gpt_response['role']}{END_HEADER_TOKEN}\n\n"
+                user_prompt = f"{START_HEADER_TOKEN}{user_input['role']}{END_HEADER_TOKEN}\n\n{user_input['content'][0]['text']}{EOT_TOKEN}{START_HEADER_TOKEN}{gpt_response['role']}{END_HEADER_TOKEN}\n\n"
                 prompt_input_ids = processor.tokenizer(user_prompt, add_special_tokens=False, return_tensors='pt')['input_ids']
 
             response_input_ids = processor.tokenizer(gpt_prompt, add_special_tokens=False, return_tensors='pt')['input_ids']
