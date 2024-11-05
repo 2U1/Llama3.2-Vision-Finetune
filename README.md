@@ -164,6 +164,14 @@ To run the training script, use the following command:
 bash scripts/finetune.sh
 ```
 
+### Full Finetuning with 8-bit
+
+```bash
+bash scripts/finetune_8bit.sh
+```
+
+This script will finetune the model with 8bit-adamw and fp8 model dtype. If you run out of vram, you could use this.
+
 ### Finetune with LoRA
 
 If you want to train only the language model with LoRA and perform full training for the vision model:
@@ -246,7 +254,6 @@ You could see this [issue](https://github.com/andimarafioti/florence2-finetuning
 
 - [x] Support for multi-image & video data
 - [x] Support for batch_size > 1
-- [ ] Support for fp8 and low bit optimizer.
 
 ## Known Issues
 
