@@ -1,6 +1,6 @@
 # Fine-tuning Llama3.2-Vision
 
-This repository contains a script for training [Llama3.2-Vision](https://huggingface.co/meta-llama/Llama-3.2-11B-Vision-Instruct) with only using HuggingFace.
+This repository contains a script for training [Llama3.2-Vision](https://huggingface.co/meta-llama/Llama-3.2-11B-Vision-Instruct) with only using HuggingFace and [Liger-Kernel](https://github.com/linkedin/Liger-Kernel).
 
 ## Other projects
 
@@ -10,6 +10,7 @@ This repository contains a script for training [Llama3.2-Vision](https://hugging
 
 ## Update
 
+- [2024/11/05] 🔥Supports training with liger-kernel.
 - [2024/10/04] 🔥Supports text-only data.
 
 ## Table of Contents
@@ -244,7 +245,8 @@ You could see this [issue](https://github.com/andimarafioti/florence2-finetuning
 ## TODO
 
 - [x] Support for multi-image & video data
-- [ ] Support for batch_size > 1
+- [x] Support for batch_size > 1
+- [ ] Support for fp8 and low bit optimizer.
 
 ## Known Issues
 

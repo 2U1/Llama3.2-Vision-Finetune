@@ -9,6 +9,7 @@ from training.data import make_supervised_data_module
 from training.params import DataArguments, ModelArguments, TrainingArguments
 from training.train_utils import get_peft_state_maybe_zero_3, get_peft_state_non_lora_maybe_zero_3, safe_save_model_for_hf_trainer
 import pathlib
+from liger_kernel.transformers import apply_liger_kernel_to_mllama
 
 local_rank = None
 
@@ -54,8 +55,20 @@ def configure_llm(model, training_args):
     llm_params = model.language_model.parameters()
     set_requires_grad(llm_params, not training_args.freeze_llm)
 
+def module_filter_fn(mod: torch.nn.Module, fqn: str):
+    # don't convert the last module
+    if fqn == "1":
+        return False
+    # don't convert linear modules with weight dimensions not divisible by 16
+    if isinstance(mod, torch.nn.Linear):
+        if mod.in_features % 16 != 0 or mod.out_features % 16 != 0:
+            return False
+    return True
+
 def train():
     global local_rank
+
+    apply_liger_kernel_to_mllama()
 
     parser = transformers.HfArgumentParser(
         (ModelArguments, DataArguments, TrainingArguments))
