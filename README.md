@@ -10,6 +10,7 @@ This repository contains a script for training [Llama3.2-Vision](https://hugging
 
 ## Update
 
+- [2024/11/05] Add memory efficient 8-bit training.
 - [2024/11/05] 🔥Supports training with liger-kernel.
 - [2024/10/04] 🔥Supports text-only data.
 
