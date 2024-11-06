@@ -10,7 +10,7 @@ MODEL_NAME="meta-llama/Llama-3.2-11B-Vision-Instruct"
 export PYTHONPATH=src:$PYTHONPATH
 
 accelerate launch --fp8_backend=msamp --fp8_opt_level=O2 src/training/train.py \
-    --deepspeed scripts/zero3.json \
+    --deepspeed scripts/zero2.json \
     --optim adamw_bnb_8bit \
     --model_id $MODEL_NAME \
     --data_path /path/to/your/training/data.json \
@@ -20,8 +20,8 @@ accelerate launch --fp8_backend=msamp --fp8_opt_level=O2 src/training/train.py \
     --tune_img_projector True \
     --freeze_vision_tower False \
     --freeze_llm False \
-    --bf16 False \
-    --fp16 True \
+    --bf16 True \
+    --fp16 False \
     --output_dir output/test \
     --num_train_epochs 1 \
     --per_device_train_batch_size 1 \
