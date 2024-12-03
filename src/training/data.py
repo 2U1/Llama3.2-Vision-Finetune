@@ -126,7 +126,7 @@ class LazySupervisedDataset(Dataset):
             aspect_ratio_mask = inputs['aspect_ratio_mask']
             cross_attention_mask = inputs['cross_attention_mask'].squeeze(0)
 
-        del inputs
+            del inputs
 
         for idx, j in enumerate(range(0, len(sources), 2)):
             user_input = sources[j]
