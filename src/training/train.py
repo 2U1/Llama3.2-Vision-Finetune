@@ -160,10 +160,13 @@ def train():
     
     # When using LoRA, the model is rapped once more.
     if training_args.lora_enable:
+        training_args.freeze_llm = True
         model_to_configure = model.model
+        configure_llm(model_to_configure, training_args)
+        
     else:
         model_to_configure = model
-        configure_llm(model, training_args)
+        configure_llm(model_to_configure, training_args)
     
     if not training_args.vision_lora:
         configure_vision_tower(model_to_configure, training_args, compute_dtype, training_args.device)
