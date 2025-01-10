@@ -9,9 +9,8 @@ MODEL_NAME="meta-llama/Llama-3.2-11B-Vision-Instruct"
 
 export PYTHONPATH=src:$PYTHONPATH
 
-accelerate launch --fp8_backend=msamp --fp8_opt_level=O2 src/training/train.py \
-    --deepspeed scripts/zero3.json \
-    --optim adamw_bnb_8bit \
+deepspeed src/training/train.py \
+    --deepspeed scripts/zero3_fp8.json \
     --model_id $MODEL_NAME \
     --data_path /path/to/your/training/data.json \
     --image_folder /path/to/your/image/folder \
@@ -20,8 +19,8 @@ accelerate launch --fp8_backend=msamp --fp8_opt_level=O2 src/training/train.py \
     --tune_img_projector True \
     --freeze_vision_tower False \
     --freeze_llm False \
-    --bf16 False \
-    --fp16 True \
+    --bf16 True \
+    --fp16 False \
     --output_dir output/test \
     --num_train_epochs 1 \
     --per_device_train_batch_size 1 \
@@ -33,7 +32,7 @@ accelerate launch --fp8_backend=msamp --fp8_opt_level=O2 src/training/train.py \
     --warmup_ratio 0.03 \
     --lr_scheduler_type "cosine" \
     --logging_steps 1 \
-    --tf32 False \
+    --tf32 True \
     --gradient_checkpointing True \
     --report_to tensorboard \
     --lazy_preprocess True \

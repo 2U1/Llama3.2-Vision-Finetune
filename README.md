@@ -11,6 +11,7 @@ This repository contains a script for training [Llama3.2-Vision](https://hugging
 
 ## Update
 
+- [2025/01/11] Updated 8-bit training using ms_amp fp8 with opt_level O3.
 - [2024/11/05] Add memory efficient 8-bit training.
 - [2024/11/05] 🔥Supports training with liger-kernel.
 - [2024/10/04] 🔥Supports text-only data.
@@ -19,6 +20,7 @@ This repository contains a script for training [Llama3.2-Vision](https://hugging
 
 - [Fine-tuning Llama3.2-Vision](#fine-tuning-llama32-vision)
   - [Other projects](#other-projects)
+  - [Update](#update)
   - [Table of Contents](#table-of-contents)
   - [Supported Features](#supported-features)
   - [Installation](#installation)
@@ -26,6 +28,7 @@ This repository contains a script for training [Llama3.2-Vision](https://hugging
   - [Dataset Preparation](#dataset-preparation)
   - [Training](#training)
     - [Full Finetuning](#full-finetuning)
+    - [Full Finetuning with 8-bit](#full-finetuning-with-8-bit)
     - [Finetune with LoRA](#finetune-with-lora)
     - [Train with video dataset](#train-with-video-dataset)
       - [Merge LoRA Weights](#merge-lora-weights)
@@ -174,7 +177,8 @@ bash scripts/finetune.sh
 bash scripts/finetune_8bit.sh
 ```
 
-This script will finetune the model with 8bit-adamw and fp8 model dtype. If you run out of vram, you could use this.
+This script will finetune the model with fp8 model dtype. If you run out of vram, you could use this.<br>
+You could combine fp8 training with offloading.
 
 ### Finetune with LoRA
 
