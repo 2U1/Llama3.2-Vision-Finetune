@@ -1,6 +1,5 @@
 # #!/bin/bash
 
-# You can use phi3 instead of phi3.5
 MODEL_NAME="meta-llama/Llama-3.2-11B-Vision-Instruct"
 # MODEL_NAME="meta-llama/Llama-3.2-90B-Vision-Instruct"
 
