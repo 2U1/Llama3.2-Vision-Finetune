@@ -12,6 +12,7 @@ This repository contains a script for training [Llama3.2-Vision](https://hugging
 
 ## Update
 
+- [2025/01/18] 🔥Supports mixed-modality data.
 - [2025/01/11] Updated 8-bit training using ms_amp fp8 with opt_level O3.
 - [2024/11/05] Add memory efficient 8-bit training.
 - [2024/11/05] 🔥Supports training with liger-kernel.

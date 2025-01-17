@@ -48,6 +48,25 @@ def pad_sequence(sequences, padding_side='right', padding_value=0):
             output.data[i, -length:] = seq
     return output
 
+def pad_cross_attention_mask(cross_attention_masks):
+    shapes = [cam.shape for cam in cross_attention_masks]
+    max_batch = len(cross_attention_masks)  
+    max_len = max(s[1] for s in shapes)     
+    max_num_images = max(s[2] for s in shapes)  
+    max_num_tiles = max(s[3] for s in shapes)
+
+    batch_cam = torch.zeros(
+        (len(cross_attention_masks), max_len, max_num_images, max_num_tiles),
+        dtype=cross_attention_masks[0].dtype,
+        device=cross_attention_masks[0].device
+    )
+
+    for i, cam in enumerate(cross_attention_masks):
+        B, L, N, T = cam.shape
+        batch_cam[i, :L, :N, :T] = cam
+
+    return batch_cam
+
 class LazySupervisedDataset(Dataset):
     """Dataset for supervised fine-tuning."""
 
@@ -113,20 +132,6 @@ class LazySupervisedDataset(Dataset):
 
         all_input_ids = [] 
         all_labels = []
-        pixel_values = None
-        aspect_ratio_ids = None
-        aspect_ratio_mask = None
-        cross_attention_mask = None
-
-        if images is not None:
-            input_text = processor.apply_chat_template(sources, add_generation_prompt=False)
-            inputs = processor(images=images, text=input_text, add_special_tokens=False, return_tensors="pt")
-            pixel_values = inputs['pixel_values']
-            aspect_ratio_ids = inputs['aspect_ratio_ids']
-            aspect_ratio_mask = inputs['aspect_ratio_mask']
-            cross_attention_mask = inputs['cross_attention_mask'].squeeze(0)
-
-            del inputs
 
         for idx, j in enumerate(range(0, len(sources), 2)):
             user_input = sources[j]
@@ -134,7 +139,25 @@ class LazySupervisedDataset(Dataset):
             gpt_prompt = f"{gpt_response['content'][0]['text']}{EOT_TOKEN}"
             if idx == 0:
                 user_prompt = processor.apply_chat_template([user_input], add_generation_prompt=True)
-                prompt_input_ids = processor.tokenizer(user_prompt, add_special_tokens=False, return_tensors='pt')['input_ids']
+                if images is not None:
+                    inputs = processor(images, user_prompt, add_special_tokens=False, return_tensors='pt')
+                    pixel_values = inputs['pixel_values']
+                    aspect_ratio_mask = inputs['aspect_ratio_mask']
+                    aspect_ratio_ids = inputs['aspect_ratio_ids']
+                    cross_attention_mask = inputs['cross_attention_mask']
+
+                else:
+                    images = [Image.new('RGB', (224, 224), (0,0,0))]
+                    user_input['content'].insert(0, {"type":"image"})
+                    inputs = processor(images, user_prompt, add_special_tokens=False, return_tensors='pt')
+                    B, S = inputs['input_ids'].shape
+                    pixel_values = inputs['pixel_values']
+                    _, num_images, num_pixels, _, _, _ = pixel_values.shape
+                    aspect_ratio_mask = inputs['aspect_ratio_mask']
+                    aspect_ratio_ids = inputs['aspect_ratio_ids']
+                    cross_attention_mask = torch.zeros(1, S, num_images, num_pixels)
+
+                prompt_input_ids = inputs["input_ids"]
 
             else:
                 user_prompt = f"{START_HEADER_TOKEN}{user_input['role']}{END_HEADER_TOKEN}\n\n{user_input['content'][0]['text']}{EOT_TOKEN}{START_HEADER_TOKEN}{gpt_response['role']}{END_HEADER_TOKEN}\n\n"
@@ -157,6 +180,10 @@ class LazySupervisedDataset(Dataset):
         input_ids = torch.cat(all_input_ids, dim=0).to(torch.long)
         labels = torch.cat(all_labels, dim=0).to(torch.long)
 
+        B, old_len, N, T = cross_attention_mask.shape
+        new_cross_attention_mask = torch.zeros((B, len(input_ids), N, T), dtype=cross_attention_mask.dtype)
+        new_cross_attention_mask[:, :old_len, :, :] = cross_attention_mask
+
         attention_mask = (input_ids > -1000000).to(torch.long)
 
         data_dict = dict(
@@ -164,7 +191,7 @@ class LazySupervisedDataset(Dataset):
             pixel_values=pixel_values,
             aspect_ratio_mask=aspect_ratio_mask,
             aspect_ratio_ids=aspect_ratio_ids,
-            cross_attention_mask=cross_attention_mask,
+            cross_attention_mask=new_cross_attention_mask,
             attention_mask=attention_mask,
             labels=labels,
         )
@@ -197,21 +224,17 @@ class DataCollatorForSupervisedDataset(object):
         input_ids = pad_sequence(
             batch_input_ids, padding_side='right', padding_value=self.pad_token_id
         )
-
-        if not all(item is None for item in batch_cross_attention_mask):
-            batch_cross_attention_mask = [cam for cam in batch_cross_attention_mask if cam is not None]
-            cross_attention_mask = pad_sequence(
-                batch_cross_attention_mask, padding_side='right', padding_value=0
-            )
         
         labels = pad_sequence(
             batch_label_ids, padding_side='right', padding_value=IGNORE_INDEX
         )
+
+        cross_attention_mask = pad_cross_attention_mask(batch_cross_attention_mask)
         
         attention_mask = input_ids != self.pad_token_id
-        pixel_values = torch.cat([pv for pv in batch_pixel_values if pv is not None and pv.numel() > 0], dim=0) if any(pv is not None and pv.numel() > 0 for pv in batch_pixel_values) else None
-        aspect_ratio_ids = torch.cat([ar for ar in batch_aspect_ratio_ids if ar is not None and ar.numel() > 0], dim=0) if any(ar is not None and ar.numel() > 0 for ar in batch_aspect_ratio_ids) else None
-        aspect_ratio_mask = torch.cat([am for am in batch_aspect_ratio_mask if am is not None and am.numel() > 0], dim=0) if any(am is not None and am.numel() > 0 for am in batch_aspect_ratio_mask) else None
+        pixel_values = torch.stack(pixel_values, dim=0)
+        aspect_ratio_ids = torch.stack(aspect_ratio_ids, dim=0)
+        aspect_ratio_mask = torch.stack(aspect_ratio_mask, dim=0)
 
 
         batch_dict = dict(
@@ -220,11 +243,10 @@ class DataCollatorForSupervisedDataset(object):
             attention_mask=attention_mask,
         )
 
-        if pixel_values is not None:
-            batch_dict['pixel_values'] = pixel_values
-            batch_dict['aspect_ratio_ids'] = aspect_ratio_ids
-            batch_dict['aspect_ratio_mask'] = aspect_ratio_mask
-            batch_dict['cross_attention_mask'] = cross_attention_mask
+        batch_dict['pixel_values'] = pixel_values
+        batch_dict['aspect_ratio_ids'] = aspect_ratio_ids
+        batch_dict['aspect_ratio_mask'] = aspect_ratio_mask
+        batch_dict['cross_attention_mask'] = cross_attention_mask
 
         return batch_dict
 
