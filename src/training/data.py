@@ -146,16 +146,21 @@ class LazySupervisedDataset(Dataset):
                     aspect_ratio_ids = inputs['aspect_ratio_ids']
                     cross_attention_mask = inputs['cross_attention_mask']
 
+                    del inputs
+
                 else:
                     images = [Image.new('RGB', (224, 224), (0,0,0))]
-                    user_input['content'].insert(0, {"type":"image"})
-                    inputs = processor(images, user_prompt, add_special_tokens=False, return_tensors='pt')
-                    B, S = inputs['input_ids'].shape
-                    pixel_values = inputs['pixel_values']
+                    image_inputs = processor(images, add_special_tokens=False, return_tensors='pt')
+                    pixel_values = image_inputs['pixel_values']
+                    aspect_ratio_mask = image_inputs['aspect_ratio_mask']
+                    aspect_ratio_ids = image_inputs['aspect_ratio_ids']
                     _, num_images, num_pixels, _, _, _ = pixel_values.shape
-                    aspect_ratio_mask = inputs['aspect_ratio_mask']
-                    aspect_ratio_ids = inputs['aspect_ratio_ids']
+
+                    inputs = processor.tokenizer(user_prompt, add_special_tokens=False, return_tensors='pt')
+                    _, S = inputs['input_ids'].shape
                     cross_attention_mask = torch.zeros(1, S, num_images, num_pixels)
+
+                    del inputs, image_inputs
 
                 prompt_input_ids = inputs["input_ids"]
 
