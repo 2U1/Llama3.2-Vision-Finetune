@@ -22,7 +22,8 @@ deepspeed src/training/train.py \
     --image_folder /path/to/your/image/folder \
     --disable_flash_attn2 True \
     --tune_img_projector True \
-    --freeze_vision_tower False \
+    --freeze_vision_tower True \
+    --freeze_llm True \
     --bf16 True \
     --output_dir output/lora_vision_test1 \
     --num_train_epochs 1 \
