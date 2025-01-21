@@ -163,8 +163,6 @@ The script requires a dataset formatted according to the LLaVA specification. Th
 
 ## Training
 
-**Note:** With the mixed-dataset (e.g. some data in a batch have images while some don't) It only supports with zero2.
-
 To run the training script, use the following command:
 
 ### Full Finetuning
@@ -265,6 +263,7 @@ You could see this [issue](https://github.com/andimarafioti/florence2-finetuning
 
 - [x] Support for multi-image & video data
 - [x] Support for batch_size > 1
+- [x] Handle mixed-modality data
 
 ## Known Issues
 
