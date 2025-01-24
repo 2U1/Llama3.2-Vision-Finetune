@@ -4,7 +4,8 @@ MODEL_NAME="meta-llama/Llama-3.2-11B-Vision-Instruct"
 # MODEL_NAME="meta-llama/Llama-3.2-90B-Vision-Instruct"
 
 # LLaMA3.2-Vision Does not support flash-attnetion2 yet.
-# It only supports batch_size=1 for now.
+# The img_projector is not included in the vision_lora. You should set tune_img_projector to True to finetune the img_projector.
+# Also, it might be a good idea to set additional lr for the img_projector.
 
 export PYTHONPATH=src:$PYTHONPATH
 

@@ -4,8 +4,6 @@ MODEL_NAME="meta-llama/Llama-3.2-11B-Vision-Instruct"
 # MODEL_NAME="meta-llama/Llama-3.2-90B-Vision-Instruct"
 
 # LLaMA3.2-Vision Does not support flash-attnetion2 yet.
-# Need test for batch size > 1
-# Leave a issue after testing this script with batch_size > 1
 
 export PYTHONPATH=src:$PYTHONPATH
 
