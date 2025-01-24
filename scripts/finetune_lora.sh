@@ -10,8 +10,9 @@ export PYTHONPATH=src:$PYTHONPATH
 deepspeed src/training/train.py \
     --lora_enable True \
     --vision_lora False \
+    --use_dora False \
     --lora_rank 64 \
-    --lora_alpha 128 \
+    --lora_alpha 64 \
     --lora_dropout 0.05 \
     --lora_namespan_exclude "['lm_head', 'embed_tokens']" \
     --num_lora_modules 1 \
@@ -32,8 +33,9 @@ deepspeed src/training/train.py \
     --learning_rate 1e-4 \
     --projector_lr 1e-5 \
     --vision_lr 2e-6 \
-    --weight_decay 0. \
+    --weight_decay 0.1 \
     --warmup_ratio 0.03 \
+    --adam_beta2 0.95 \
     --lr_scheduler_type "cosine" \
     --logging_steps 1 \
     --tf32 True \
