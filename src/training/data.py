@@ -186,7 +186,7 @@ class LazySupervisedDataset(Dataset):
         labels = torch.cat(all_labels, dim=0).to(torch.long)
 
         B, old_len, N, T = cross_attention_mask.shape
-        new_cross_attention_mask = torch.zeros((B, len(input_ids), N, T), dtype=cross_attention_mask.dtype)
+        new_cross_attention_mask = torch.ones((B, len(input_ids), N, T), dtype=cross_attention_mask.dtype)
         new_cross_attention_mask[:, :old_len, :, :] = cross_attention_mask
 
         attention_mask = (input_ids > -1000000).to(torch.long)
