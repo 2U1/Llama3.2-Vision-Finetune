@@ -85,14 +85,13 @@ def train():
     if training_args.vision_lora and not training_args.freeze_vision_tower:
         raise ValueError("If `vision_lora` is True, `freeze_vision_tower` must also be True.")
 
+    if training_args.lora_namespan_exclude is not None:
+        training_args.lora_namespan_exclude = ast.literal_eval(training_args.lora_namespan_exclude)
     else:
-        if training_args.lora_namespan_exclude is not None:
-            training_args.lora_namespan_exclude = ast.literal_eval(training_args.lora_namespan_exclude)
-        else:
-            training_args.lora_namespan_exclude = ["multi_modal_projector"]
+        training_args.lora_namespan_exclude = ["multi_modal_projector"]
 
-        if not training_args.vision_lora:
-            training_args.lora_namespan_exclude += ["vision_model", "multi_modal_projector"]
+    if not training_args.vision_lora:
+        training_args.lora_namespan_exclude += ["vision_model", "multi_modal_projector"]
 
     local_rank = training_args.local_rank
     compute_dtype = (torch.float16 if training_args.fp16 else (torch.bfloat16 if training_args.bf16 else torch.float32))
@@ -120,6 +119,10 @@ def train():
         attn_implementation="flash_attention_2" if not training_args.disable_flash_attn2 else "sdpa", 
         **bnb_model_from_pretrained_args
     )
+    
+    model_to_configure = model
+    configure_llm(model_to_configure, training_args)
+    configure_vision_tower(model_to_configure, training_args, compute_dtype, training_args.device)
 
     # I set a hidden size for temporary use. This is to use the deepspeed.
     # I will find a proper way later.
@@ -161,19 +164,6 @@ def train():
 
     model.config.tokenizer_model_max_length = processor.tokenizer.model_max_length
     model.config.tokenizer_padding_side = processor.tokenizer.padding_side
-    
-    # When using LoRA, the model is rapped once more.
-    if training_args.lora_enable:
-        training_args.freeze_llm = True
-        model_to_configure = model.model
-        configure_llm(model_to_configure, training_args)
-        
-    else:
-        model_to_configure = model
-        configure_llm(model_to_configure, training_args)
-    
-    if not training_args.vision_lora:
-        configure_vision_tower(model_to_configure, training_args, compute_dtype, training_args.device)
         
     model.config.vision_lr = training_args.vision_lr
     model.config.projector_lr = training_args.projector_lr
