@@ -247,8 +247,6 @@ class DataCollatorForSupervisedDataset(object):
             attention_mask=attention_mask,
         )
 
-        print(pixel_values.shape)
-
         batch_dict['pixel_values'] = pixel_values
         batch_dict['aspect_ratio_ids'] = aspect_ratio_ids
         batch_dict['aspect_ratio_mask'] = aspect_ratio_mask
