@@ -146,7 +146,6 @@ class LazySupervisedDataset(Dataset):
                     aspect_ratio_ids = inputs['aspect_ratio_ids']
                     cross_attention_mask = inputs['cross_attention_mask']
 
-                    del inputs
 
                 else:
                     images = [Image.new('RGB', (224, 224), (0,0,0))]
@@ -160,7 +159,7 @@ class LazySupervisedDataset(Dataset):
                     _, S = inputs['input_ids'].shape
                     cross_attention_mask = torch.zeros(1, S, num_images, num_pixels)
 
-                    del inputs, image_inputs
+                    del image_inputs
 
                 prompt_input_ids = inputs["input_ids"]
 
@@ -237,9 +236,9 @@ class DataCollatorForSupervisedDataset(object):
         cross_attention_mask = pad_cross_attention_mask(batch_cross_attention_mask)
         
         attention_mask = input_ids != self.pad_token_id
-        pixel_values = torch.stack(pixel_values, dim=0)
-        aspect_ratio_ids = torch.stack(aspect_ratio_ids, dim=0)
-        aspect_ratio_mask = torch.stack(aspect_ratio_mask, dim=0)
+        pixel_values = torch.cat(batch_pixel_values, dim=0)
+        aspect_ratio_ids = torch.cat(batch_aspect_ratio_ids, dim=0)
+        aspect_ratio_mask = torch.cat(batch_aspect_ratio_mask, dim=0)
 
 
         batch_dict = dict(
@@ -247,6 +246,8 @@ class DataCollatorForSupervisedDataset(object):
             labels=labels,
             attention_mask=attention_mask,
         )
+
+        print(pixel_values.shape)
 
         batch_dict['pixel_values'] = pixel_values
         batch_dict['aspect_ratio_ids'] = aspect_ratio_ids
