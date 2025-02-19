@@ -165,6 +165,9 @@ The script requires a dataset formatted according to the LLaVA specification. Th
 
 ## Training
 
+**Note:** Deepspeed zero2 is faster than zero3, however it consumes more memory. Also, most of the time zero2 is more stable than zero3.<br><br>
+**Tip:** You could use `adamw_bnb_8bit` for optimizer to save memory.
+
 To run the training script, use the following command:
 
 ### Full Finetuning
@@ -206,6 +209,7 @@ bash scripts/finetune_lora_vision.sh
 - `--data_path` (str): Path to the LLaVA formatted training data (a JSON file). **(Required)**
 - `--image_folder` (str): Path to the images folder as referenced in the LLaVA formatted training data. **(Required)**
 - `--model_id` (str): Path to the Llama3.2-Vision model. **(Required)**
+- `--optim` (str): Optimizer when training (default: `adamw_torch`).
 - `--output_dir` (str): Output directory for model checkpoints
 - `--num_train_epochs` (int): Number of training epochs (default: 1).
 - `--per_device_train_batch_size` (int): Training batch size per GPU per forwarding step.
