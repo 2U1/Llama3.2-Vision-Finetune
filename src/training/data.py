@@ -100,6 +100,7 @@ class LazySupervisedDataset(Dataset):
 
         processor = self.processor
         if "image" in sources:
+            is_dummy = False
             image_files = sources["image"]
             image_folder = self.data_args.image_folder
 
@@ -114,6 +115,7 @@ class LazySupervisedDataset(Dataset):
                 images.append(Image.open(image_file))
 
         elif "video" in sources:
+            is_dummy = False
             video_file = sources["video"]
             video_folder = self.data_args.image_folder
 
@@ -126,6 +128,7 @@ class LazySupervisedDataset(Dataset):
             num_frames = len(images)
 
         else:
+            is_dummy = True
             images = None
 
         sources = copy.deepcopy(llava_to_openai(sources['conversations'], is_video=is_video, num_frames=num_frames))
@@ -185,8 +188,12 @@ class LazySupervisedDataset(Dataset):
         labels = torch.cat(all_labels, dim=0).to(torch.long)
 
         B, old_len, N, T = cross_attention_mask.shape
-        new_cross_attention_mask = torch.ones((B, len(input_ids), N, T), dtype=cross_attention_mask.dtype)
-        new_cross_attention_mask[:, :old_len, :, :] = cross_attention_mask
+        if is_dummy:
+            new_cross_attention_mask = torch.zeros((B, len(input_ids), N, T), dtype=cross_attention_mask.dtype)
+            new_cross_attention_mask[:, :old_len, :, :] = cross_attention_mask
+        else:
+            new_cross_attention_mask = torch.ones((B, len(input_ids), N, T), dtype=cross_attention_mask.dtype)
+            new_cross_attention_mask[:, :old_len, :, :] = cross_attention_mask
 
         attention_mask = (input_ids > -1000000).to(torch.long)
 
