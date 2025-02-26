@@ -10,6 +10,7 @@ import ujson as json
 from PIL import Image
 from torch.utils.data import Dataset
 from decord import VideoReader, cpu
+import re
 
 from .params import DataArguments
 from .constants import *
@@ -263,24 +264,20 @@ class DataCollatorForSupervisedDataset(object):
 
 def replace_image_tokens(input_string, start_count=0):
 
-    count = start_count
-    has_image = False
-
-    if LLAVA_IMAGE_TOKEN not in input_string:
-        return input_string, count, has_image
-
-    while LLAVA_IMAGE_TOKEN in input_string:
-        has_image = True
-        input_string = input_string.replace(LLAVA_IMAGE_TOKEN+'\n', '', 1)
-        count += 1
-
-    return input_string, count, has_image
+    pattern = re.escape(LLAVA_IMAGE_TOKEN) + r'\n?'
+    
+    matches = re.findall(pattern, input_string)
+    has_image = bool(matches)
+    
+    output_string = re.sub(pattern, '', input_string)
+    
+    new_count = start_count + len(matches)
+    
+    return output_string, new_count, has_image
 
 def video_to_image_tokens(input_string, num_frames):
-
     frame_tokens = "\n".join([LLAVA_IMAGE_TOKEN] * num_frames)
     input_string = input_string.replace(LLAVA_VIDEO_TOKEN, frame_tokens)
-
     return input_string
 
 def llava_to_openai(conversations, is_video=False, num_frames=None):
