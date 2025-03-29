@@ -28,7 +28,9 @@ This repository contains a script for training [Llama3.2-Vision](https://hugging
   - [Update](#update)
   - [Table of Contents](#table-of-contents)
   - [Supported Features](#supported-features)
+  - [Docker](#docker)
   - [Installation](#installation)
+    - [Environments](#environments)
     - [Using `environment.yaml`](#using-environmentyaml)
   - [Dataset Preparation](#dataset-preparation)
   - [Training](#training)
@@ -51,7 +53,22 @@ This repository contains a script for training [Llama3.2-Vision](https://hugging
 - Full-finetuning
 - Multi-image and video training
 
+## Docker
+
+To simplfy the setting process for training, you could use the provided pre-build environments.
+
+```
+docker pull john119/vlm:v1
+docker run --gpus all -it -v /host/path:/docker/path --name vlm --ipc=host john119/vlm:v1 /bin/bash
+```
+
 ## Installation
+
+### Environments
+
+- Ubuntu 22.04
+- Nvidia-Driver 550.120
+- Cuda version 12.4
 
 Install the required packages using `environment.yml`.
 
