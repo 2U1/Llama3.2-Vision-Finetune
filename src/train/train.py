@@ -4,10 +4,10 @@ import transformers
 from peft import LoraConfig, get_peft_model
 import ast
 from transformers import AutoProcessor, BitsAndBytesConfig, MllamaForConditionalGeneration
-from training.trainer import LLamaVTrainer
-from training.data import make_supervised_data_module
-from training.params import DataArguments, ModelArguments, TrainingArguments
-from training.train_utils import get_peft_state_maybe_zero_3, get_peft_state_non_lora_maybe_zero_3, safe_save_model_for_hf_trainer
+from train.trainer import LLamaVTrainer
+from train.data import make_supervised_data_module
+from train.params import DataArguments, ModelArguments, TrainingArguments
+from train.train_utils import get_peft_state_maybe_zero_3, get_peft_state_non_lora_maybe_zero_3, safe_save_model_for_hf_trainer
 import pathlib
 from liger_kernel.transformers import apply_liger_kernel_to_mllama
 
@@ -43,7 +43,7 @@ def configure_vision_tower(model, training_args, compute_dtype, device):
     vision_tower.to(dtype=compute_dtype, device=device)
 
     img_projection_params = model.multi_modal_projector.parameters()
-    set_requires_grad(img_projection_params, training_args.tune_img_projector)
+    set_requires_grad(img_projection_params, not training_args.freeze_img_projector)
 
     vision_model_params = vision_tower.parameters()
     set_requires_grad(vision_model_params, not training_args.freeze_vision_tower)
@@ -156,6 +156,22 @@ def train():
                 model.to(torch.float16)
         rank0_print("Adding LoRA to the model...")
         model = get_peft_model(model, peft_config)
+
+
+        # Peft maodel makes vision tower and projector freezed again.
+        # Configuring fuction could be called here, but sometimes it does not work properly.
+        # So I just made it this way.
+        # Need to be fixed in the future.
+
+        if not training_args.freeze_vision_tower:
+            for name, param in model.named_parameters():
+                if "vision_model" in name:
+                    param.requires_grad = True
+
+        if not training_args.freeze_merger:
+            for name, param in model.named_parameters():
+                if "multi_modal_projector" in name:
+                    param.requires_grad = True
 
     processor = AutoProcessor.from_pretrained(model_args.model_id)
     

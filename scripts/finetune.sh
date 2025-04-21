@@ -7,14 +7,14 @@ MODEL_NAME="meta-llama/Llama-3.2-11B-Vision-Instruct"
 
 export PYTHONPATH=src:$PYTHONPATH
 
-deepspeed src/training/train.py \
+deepspeed src/train/train.py \
     --deepspeed scripts/zero3_offload.json \
     --model_id $MODEL_NAME \
     --data_path /path/to/your/training/data.json \
     --image_folder /path/to/your/image/folder \
     --disable_flash_attn2 True \
     --lora_enable False \
-    --tune_img_projector True \
+    --freeze_img_projector False \
     --freeze_vision_tower False \
     --freeze_llm False \
     --bf16 True \

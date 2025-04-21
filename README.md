@@ -293,6 +293,7 @@ You could see this [issue](https://github.com/andimarafioti/florence2-finetuning
 - [x] Support for multi-image & video data
 - [x] Support for batch_size > 1
 - [x] Handle mixed-modality data
+- [ ] Add DPO Support
 
 ## Known Issues
 
