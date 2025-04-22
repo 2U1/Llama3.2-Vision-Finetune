@@ -7,7 +7,7 @@ MODEL_NAME="meta-llama/Llama-3.2-11B-Vision-Instruct"
 
 export PYTHONPATH=src:$PYTHONPATH
 
-deepspeed src/train/train.py \
+deepspeed src/train/train_sft.py \
     --deepspeed scripts/zero2_fp8.json \
     --model_id $MODEL_NAME \
     --data_path /path/to/your/training/data.json \

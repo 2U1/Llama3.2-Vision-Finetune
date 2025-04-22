@@ -9,7 +9,7 @@ MODEL_NAME="meta-llama/Llama-3.2-11B-Vision-Instruct"
 
 export PYTHONPATH=src:$PYTHONPATH
 
-deepspeed src/train/train.py \
+deepspeed src/train/train_sft.py \
     --lora_enable True \
     --vision_lora True \
     --use_dora False \
