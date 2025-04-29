@@ -37,7 +37,6 @@ This repository contains a script for training [Llama3.2-Vision](https://hugging
   - [Dataset Preparation](#dataset-preparation)
   - [Supervised FineTuning](#supervised-finetuning)
     - [Full Finetuning](#full-finetuning)
-    - [Full Finetuning with 8-bit](#full-finetuning-with-8-bit)
     - [Finetune with LoRA](#finetune-with-lora)
     - [Train with video dataset](#train-with-video-dataset)
       - [Merge LoRA Weights](#merge-lora-weights)
@@ -232,16 +231,6 @@ To run the training script, use the following command:
 ```bash
 bash scripts/finetune.sh
 ```
-
-### Full Finetuning with 8-bit
-
-```bash
-bash scripts/finetune_8bit.sh
-```
-
-**You need to install [ms-amp](https://github.com/Azure/MS-AMP) to use this script.**<br>
-This script will finetune the model with fp8 model dtype. If you run out of vram, you could use this.<br>
-You could combine fp8 training with offloading.
 
 ### Finetune with LoRA
 
