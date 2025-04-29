@@ -4,12 +4,12 @@ import transformers
 from peft import LoraConfig, get_peft_model
 import ast
 from transformers import AutoProcessor, BitsAndBytesConfig, MllamaForConditionalGeneration
-from train.trainer import LLamaVTrainer
-from train.data import make_supervised_data_module
-from train.params import DataArguments, ModelArguments, TrainingArguments
+from train.dpo_trainer import LLamaVDPOTrainer
+from train.data import make_dpo_data_module
+from train.params import DataArguments, ModelArguments, DPOArguments
 from train.train_utils import get_peft_state_maybe_zero_3, get_peft_state_non_lora_maybe_zero_3, safe_save_model_for_hf_trainer
 import pathlib
-from liger_kernel.transformers import apply_liger_kernel_to_mllama
+from liger_kernel.transformers.monkey_patch import apply_liger_kernel_to_mllama
 
 local_rank = None
 
@@ -59,14 +59,13 @@ def train():
     global local_rank
 
     parser = transformers.HfArgumentParser(
-        (ModelArguments, DataArguments, TrainingArguments))
+        (ModelArguments, DataArguments, DPOArguments))
     
     model_args, data_args, training_args = parser.parse_args_into_dataclasses()
     
     if training_args.use_liger:
         apply_liger_kernel_to_mllama()
     
-
     if training_args.lora_enable and not training_args.freeze_llm:
         raise ValueError("If `lora_enable` is True, `freeze_llm` must also be True.")
 
@@ -95,7 +94,7 @@ def train():
             quantization_config = BitsAndBytesConfig(
                 load_in_4bit=training_args.bits==4,
                 load_in_8bit=training_args.bits==8,
-                llm_int8_skip_modules=["multi_modal_projector", "vision_model"],
+                llm_int8_skip_modules=["vision_model", "multi_modal_projector"],
                 llm_int8_threshold=6.0,
                 llm_int8_has_fp16_weight=False,
                 bnb_4bit_compute_dtype=compute_dtype,
@@ -103,23 +102,37 @@ def train():
                 bnb_4bit_quant_type=training_args.quant_type,
             )
         ))
-
+    
     model = MllamaForConditionalGeneration.from_pretrained(
         model_args.model_id,
         torch_dtype=compute_dtype,
-        cache_dir=training_args.cache_dir, 
+        cache_dir=training_args.cache_dir,
         attn_implementation="sdpa",
         **bnb_model_from_pretrained_args
     )
+    
+    ref_model = None
+
+    if not training_args.lora_enable:
+        ref_model = MllamaForConditionalGeneration.from_pretrained(
+            model_args.model_id,
+            torch_dtype=compute_dtype,
+            cache_dir=training_args.cache_dir,
+            attn_implementation="sdpa"
+            **bnb_model_from_pretrained_args
+        )
     
     model_to_configure = model
     configure_llm(model_to_configure, training_args)
     configure_vision_tower(model_to_configure, training_args, compute_dtype, training_args.device)
 
-    # I set a hidden size for temporary use. This is to use the deepspeed.
-    # I will find a proper way later.
     model.config.hidden_size = model.config.text_config.hidden_size
     model.config.text_config.use_cache = False
+    model.config.use_cache = False
+
+    if ref_model is not None:
+        ref_model.eval()
+        ref_model.config.use_cache = False
 
     if training_args.bits in [4,8]:
         model.config.torch_dtype = (torch.float32 if training_args.fp16 else (torch.bfloat16 if training_args.bf16 else torch.float32))
@@ -139,16 +152,17 @@ def train():
             lora_alpha=training_args.lora_alpha,
             target_modules=find_target_linear_names(model, lora_namespan_exclude=lora_namespan_exclude, num_lora_modules=training_args.num_lora_modules),
             lora_dropout=training_args.lora_dropout,
-            bias=training_args.lora_bias
+            bias=training_args.lora_bias,
         )
+
         if training_args.bits == 16:
             if training_args.bf16:
                 model.to(torch.bfloat16)
             if training_args.fp16:
                 model.to(torch.float16)
+        
         rank0_print("Adding LoRA to the model...")
         model = get_peft_model(model, peft_config)
-
 
         # Peft maodel makes vision tower and projector freezed again.
         # Configuring fuction could be called here, but sometimes it does not work properly.
@@ -166,12 +180,6 @@ def train():
                     param.requires_grad = True
 
     processor = AutoProcessor.from_pretrained(model_args.model_id)
-    
-    # use unk rather than eos token to prevent endless generation
-    processor.tokenizer.padding_side = 'right'
-
-    model.config.tokenizer_model_max_length = processor.tokenizer.model_max_length
-    model.config.tokenizer_padding_side = processor.tokenizer.padding_side
         
     model.config.vision_lr = training_args.vision_lr
     model.config.projector_lr = training_args.projector_lr
@@ -185,18 +193,22 @@ def train():
             if 'norm' in name:
                 module = module.to(torch.float32)
             
-            if 'lm_head' in name or 'embed_token' in name:
+            if 'lm_head' in name or 'embed_tokens' in name:
                 if hasattr(module, 'weight'):
                     if training_args.bf16 and module.weight.dtype == torch.float32:
                         module = module.to(torch.bfloat16)
 
-    data_module = make_supervised_data_module(processor=processor,
-                                            data_args=data_args)
+    data_module = make_dpo_data_module(processor=processor,
+                                              data_args=data_args)
 
-    trainer = LLamaVTrainer(
+    trainer = LLamaVDPOTrainer(
         model=model,
+        ref_model=ref_model,
+        train_dataset=data_module["train_dataset"],
+        eval_dataset=data_module["eval_dataset"],
+        data_collator=data_module["data_collator"],
+        processing_class=processor,
         args=training_args,
-        **data_module
     )
 
     if list(pathlib.Path(training_args.output_dir).glob("checkpoint-*")):
@@ -206,7 +218,7 @@ def train():
 
     trainer.save_state()
 
-    model.config.text_config.use_cache = True
+    model.config.use_cache = True
     
     if training_args.lora_enable:
         state_dict = get_peft_state_maybe_zero_3(

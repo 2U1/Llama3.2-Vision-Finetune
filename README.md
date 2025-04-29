@@ -13,6 +13,7 @@ This repository contains a script for training [Llama3.2-Vision](https://hugging
 
 ## Update
 
+- [2025/04/29] Add DPO Training.
 - [2025/01/24] Add option for using DoRA.
 - [2025/01/24] Fix error in LoRA training.
 - [2025/01/18] 🔥Supports mixed-modality data.
@@ -183,6 +184,34 @@ The script requires a dataset formatted according to the LLaVA specification. Th
 
 </details>
 
+<details>
+<summary>Example for DPO dataet</summary>
+
+```json
+[
+  {
+    "id": "e4cd017f-3854-4019-9cc1-9dacacb5d424",
+    "image": "example_0_0.png",
+    "prompt": "<image>\nDescribe the key features of the image in great detail.",
+    "chosen": "The image features a modern, multi-colored train parked on a train track, occupying a significant portion of the scene. The train has a unique and striking design, with red, white, and blue colors, as well as yellow accents. It appears to be a high-speed train, indicating its advanced engineering and potential for fast travel.\n\nThe train is situated next to a platform, suggesting that it may be at a train station. The overall scene conveys a sense of transportation and modern technology, with the vibrant and sleek train as the main subject.",
+    "rejected": "The image features a modern, colorful train parked on a set of train tracks. The train has a striking design, with red, white, and blue colors as well as yellow accents. It appears to be a high-speed train, ready for departure.\n\nThe train spans a significant portion of the image, from the left to the right side. The train tracks can be seen clearly beneath the train, emphasizing its position on the railway line. The overall scene gives off an impression of a contemporary and efficient mode of transportation."
+  },
+  {
+    "id": "5e19e647-e5d3-4bcf-82e9-d262570743ae",
+    "image": "example_1_0.png",
+    "prompt": "<image>\nIs this bus in the USA?",
+    "chosen": "Yes, based on the image, it can be assumed that this bus is in the USA. The location of the bus cannot be accurately determined.",
+    "rejected": "No, it's not in the USA. The image does not provide specific information on where the bus is located. However, we can say that it's not in the United States."
+  }
+  ...
+]
+```
+
+</details>
+<br><br>
+
+Adding the new domain-specific data on top of the general data from open-source data will enhance downstream capabilities while retaining the foundational skills. Of course, you can also choose to fine-tune solely on the new data based on your requirements.
+
 ## Training
 
 **Note:** Deepspeed zero2 is faster than zero3, however it consumes more memory. Also, most of the time zero2 is more stable than zero3.<br><br>
@@ -279,7 +308,16 @@ bash scripts/merge_lora.sh
 
 **Note:** Remember to replace the paths in `finetune.sh` or `finetune_lora.sh` with your specific paths. (Also in `merge_lora.sh` when using LoRA.)
 
-#### Issue for libcudnn error
+## DPO Finetuning
+
+You can train the model using Direct Preference Optimization (DPO).<br>
+The process is quite similar to Supervised Fine-Tuning (SFT), and you can also apply LoRA during DPO training just like in SFT.
+
+```bash
+bash scripts/finetune_dpo.sh
+```
+
+## Issue for libcudnn error
 
 ```
 Could not load library libcudnn_cnn_train.so.8. Error: /usr/local/cuda-12.1/lib/libcudnn_cnn_train.so.8: undefined symbol: _ZN5cudnn3cnn34layerNormFwd_execute_internal_implERKNS_7backend11VariantPackEP11CUstream_stRNS0_18LayerNormFwdParamsERKNS1_20NormForwardOperationEmb, version libcudnn_cnn_infer.so.8
@@ -293,7 +331,7 @@ You could see this [issue](https://github.com/andimarafioti/florence2-finetuning
 - [x] Support for multi-image & video data
 - [x] Support for batch_size > 1
 - [x] Handle mixed-modality data
-- [ ] Add DPO Support
+- [x] Add DPO Support
 
 ## Known Issues
 

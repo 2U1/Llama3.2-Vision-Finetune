@@ -3,22 +3,24 @@
 MODEL_NAME="meta-llama/Llama-3.2-11B-Vision-Instruct"
 # MODEL_NAME="meta-llama/Llama-3.2-90B-Vision-Instruct"
 
-# LLaMA3.2-Vision Does not support flash-attnetion2 yet.
+# LLaMA3.2-Vision Does not support flash-attnetion2.
 
 export PYTHONPATH=src:$PYTHONPATH
 
-deepspeed src/train/train_sft.py \
-    --deepspeed scripts/zero2_fp8.json \
+deepspeed src/train/train.py \
+    --dpo_loss "sigmoid" \
+    --precompute_ref_log_probs False \
+    --beta 0.1 \
+    --use_liger True \
+    --deepspeed scripts/zero3.json \
     --model_id $MODEL_NAME \
     --data_path /path/to/your/training/data.json \
     --image_folder /path/to/your/image/folder \
-    --disable_flash_attn2 True \
     --lora_enable False \
-    --freeze_img_projector False \
+    --freeze_projector False \
     --freeze_vision_tower False \
     --freeze_llm False \
     --bf16 True \
-    --fp16 False \
     --output_dir output/test \
     --num_train_epochs 1 \
     --per_device_train_batch_size 1 \
