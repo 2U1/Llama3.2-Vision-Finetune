@@ -33,6 +33,7 @@ This repository contains a script for training [Llama3.2-Vision](https://hugging
   - [Installation](#installation)
     - [Environments](#environments)
     - [Using `environment.yaml`](#using-environmentyaml)
+    - [Using `requirements.txt`](#using-requirementstxt)
   - [Dataset Preparation](#dataset-preparation)
   - [Training](#training)
     - [Full Finetuning](#full-finetuning)
@@ -40,7 +41,8 @@ This repository contains a script for training [Llama3.2-Vision](https://hugging
     - [Finetune with LoRA](#finetune-with-lora)
     - [Train with video dataset](#train-with-video-dataset)
       - [Merge LoRA Weights](#merge-lora-weights)
-      - [Issue for libcudnn error](#issue-for-libcudnn-error)
+  - [DPO Finetuning](#dpo-finetuning)
+  - [Issue for libcudnn error](#issue-for-libcudnn-error)
   - [TODO](#todo)
   - [Known Issues](#known-issues)
   - [License](#license)
@@ -71,7 +73,7 @@ docker run --gpus all -it -v /host/path:/docker/path --name vlm --ipc=host john1
 
 - Ubuntu 22.04
 - Nvidia-Driver 550.120
-- Cuda version 12.4
+- Cuda version 12.6
 
 Install the required packages using `environment.yml`.
 
@@ -79,10 +81,16 @@ Install the required packages using `environment.yml`.
 
 ```bash
 conda env create -f environment.yaml
-conda activate llama
+conda activate train
 ```
 
-**Note:** Llama3.2-Vision does not support flash-attention2 for now.
+**Note:** Llama3.2-Vision does not support flash-attention2.
+
+### Using `requirements.txt`
+
+```bash
+pip install -r requirements.txt --index-url https://download.pytorch.org/whl/cu126
+```
 
 ## Dataset Preparation
 
