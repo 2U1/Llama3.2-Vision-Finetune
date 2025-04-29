@@ -13,7 +13,7 @@ This repository contains a script for training [Llama3.2-Vision](https://hugging
 
 ## Update
 
-- [2025/04/29] Add DPO Training.
+- [2025/04/29] 🔥Add DPO Training.
 - [2025/01/24] Add option for using DoRA.
 - [2025/01/24] Fix error in LoRA training.
 - [2025/01/18] 🔥Supports mixed-modality data.
