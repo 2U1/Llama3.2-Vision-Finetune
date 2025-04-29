@@ -35,7 +35,7 @@ This repository contains a script for training [Llama3.2-Vision](https://hugging
     - [Using `environment.yaml`](#using-environmentyaml)
     - [Using `requirements.txt`](#using-requirementstxt)
   - [Dataset Preparation](#dataset-preparation)
-  - [Training](#training)
+  - [Supervised FineTuning](#supervised-finetuning)
     - [Full Finetuning](#full-finetuning)
     - [Full Finetuning with 8-bit](#full-finetuning-with-8-bit)
     - [Finetune with LoRA](#finetune-with-lora)
@@ -220,7 +220,7 @@ The script requires a dataset formatted according to the LLaVA specification. Th
 
 Adding the new domain-specific data on top of the general data from open-source data will enhance downstream capabilities while retaining the foundational skills. Of course, you can also choose to fine-tune solely on the new data based on your requirements.
 
-## Training
+## Supervised FineTuning
 
 **Note:** Deepspeed zero2 is faster than zero3, however it consumes more memory. Also, most of the time zero2 is more stable than zero3.<br><br>
 **Tip:** You could use `adamw_bnb_8bit` for optimizer to save memory.
