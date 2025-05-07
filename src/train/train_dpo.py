@@ -174,7 +174,7 @@ def train():
                 if "vision_model" in name:
                     param.requires_grad = True
 
-        if not training_args.freeze_merger:
+        if not training_args.freeze_img_projector:
             for name, param in model.named_parameters():
                 if "multi_modal_projector" in name:
                     param.requires_grad = True
