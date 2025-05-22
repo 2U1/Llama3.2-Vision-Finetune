@@ -88,7 +88,7 @@ conda activate train
 ### Using `requirements.txt`
 
 ```bash
-pip install -r requirements.txt --index-url https://download.pytorch.org/whl/cu126
+pip install -r requirements.txt -f https://download.pytorch.org/whl/cu124
 ```
 
 ## Dataset Preparation
