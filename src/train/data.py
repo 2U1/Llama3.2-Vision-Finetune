@@ -1,11 +1,8 @@
 import copy
 import os
-from dataclasses import dataclass, field
-from typing import Dict
 
 import torch
 import transformers
-from transformers.models.mllama.processing_mllama import get_cross_attention_token_mask, convert_sparse_cross_attention_mask_to_dense
 import ujson as json
 from PIL import Image
 from torch.utils.data import Dataset
@@ -14,6 +11,60 @@ import re
 
 from .params import DataArguments
 from .constants import *
+
+
+def pad_visual_batch(
+    batch_pixel_values,
+    batch_aspect_ratio_ids,
+    batch_aspect_ratio_mask,
+    max_num_images=None,
+    max_num_tiles=None, 
+    pad_value=0,
+):
+    Ns, Ts = [], []
+    C, H, W = None, None, None
+
+    for pv in batch_pixel_values:
+        assert pv.dim() == 6, f"pixel_values must be (B, N, T, C, H, W), got {pv.shape}"
+        B_i, N_i, T_i, C, H, W = pv.shape
+        assert B_i == 1, "Each sample should come as B=1 before collation."
+        Ns.append(N_i); Ts.append(T_i)
+
+    N_max = max_num_images or max(Ns)
+    T_max = max_num_tiles  or max(Ts)
+
+    out_pv = batch_pixel_values[0].new_full(
+        (len(batch_pixel_values), N_max, T_max, C, H, W),
+        pad_value
+    )
+    for i, pv in enumerate(batch_pixel_values):
+        _, N_i, T_i, _, _, _ = pv.shape
+        out_pv[i, :N_i, :T_i] = pv[0]
+
+    def _pad_nm(tensors, fill, is_bool=False):
+        if tensors[0] is None: 
+            return None
+        shp = tensors[0].shape
+        if len(shp) == 3:   # (1, N, T)
+            out = tensors[0].new_full((len(tensors), N_max, T_max), fill)
+            if is_bool: out = out.bool()
+            for i, t in enumerate(tensors):
+                _, N_i, T_i = t.shape
+                out[i, :N_i, :T_i] = t[0]
+        elif len(shp) == 2: # (1, N)
+            out = tensors[0].new_full((len(tensors), N_max), fill)
+            if is_bool: out = out.bool()
+            for i, t in enumerate(tensors):
+                _, N_i = t.shape
+                out[i, :N_i] = t[0]
+        else:
+            raise ValueError(f"Unexpected shape for aspect ratio tensor: {shp}")
+        return out
+
+    out_ids  = _pad_nm(batch_aspect_ratio_ids,  0, is_bool=False)
+    out_mask = _pad_nm(batch_aspect_ratio_mask, False, is_bool=True)
+
+    return out_pv, out_ids, out_mask
 
 def encode_video(video_path, max_num_frames=10):
     def uniform_sample(l, n):
@@ -50,8 +101,7 @@ def pad_sequence(sequences, padding_side='right', padding_value=0):
     return output
 
 def pad_cross_attention_mask(cross_attention_masks):
-    shapes = [cam.shape for cam in cross_attention_masks]
-    max_batch = len(cross_attention_masks)  
+    shapes = [cam.shape for cam in cross_attention_masks] 
     max_len = max(s[1] for s in shapes)     
     max_num_images = max(s[2] for s in shapes)  
     max_num_tiles = max(s[3] for s in shapes)
@@ -63,7 +113,7 @@ def pad_cross_attention_mask(cross_attention_masks):
     )
 
     for i, cam in enumerate(cross_attention_masks):
-        B, L, N, T = cam.shape
+        _, L, N, T = cam.shape
         batch_cam[i, :L, :N, :T] = cam
 
     return batch_cam
@@ -241,13 +291,22 @@ class DataCollatorForSupervisedDataset(object):
             batch_label_ids, padding_side='right', padding_value=IGNORE_INDEX
         )
 
-        cross_attention_mask = pad_cross_attention_mask(batch_cross_attention_mask)
-        
         attention_mask = input_ids != self.pad_token_id
-        pixel_values = torch.cat(batch_pixel_values, dim=0)
-        aspect_ratio_ids = torch.cat(batch_aspect_ratio_ids, dim=0)
-        aspect_ratio_mask = torch.cat(batch_aspect_ratio_mask, dim=0)
 
+        cam_shapes = [cam.shape for cam in batch_cross_attention_mask]
+        max_num_images = max(s[2] for s in cam_shapes)
+        max_num_tiles  = max(s[3] for s in cam_shapes)
+
+        pixel_values, aspect_ratio_ids, aspect_ratio_mask = pad_visual_batch(
+            batch_pixel_values,
+            batch_aspect_ratio_ids,
+            batch_aspect_ratio_mask,
+            max_num_images=max_num_images,
+            max_num_tiles=max_num_tiles,
+            pad_value=0,
+        )
+
+        cross_attention_mask = pad_cross_attention_mask(batch_cross_attention_mask)
 
         batch_dict = dict(
             input_ids=input_ids,
@@ -432,12 +491,20 @@ class DataCollatorForDPODataset(object):
         chosen_attention_mask = chosen_input_ids != self.pad_token_id
         rejected_attention_mask = rejected_input_ids != self.pad_token_id
 
-        cross_attention_mask = pad_cross_attention_mask(batch_cross_attention_mask)
-        
-        pixel_values = torch.cat(batch_pixel_values, dim=0)
-        aspect_ratio_ids = torch.cat(batch_aspect_ratio_ids, dim=0)
-        aspect_ratio_mask = torch.cat(batch_aspect_ratio_mask, dim=0)
+        cam_shapes = [cam.shape for cam in batch_cross_attention_mask]
+        max_num_images = max(s[2] for s in cam_shapes)
+        max_num_tiles  = max(s[3] for s in cam_shapes)
 
+        pixel_values, aspect_ratio_ids, aspect_ratio_mask = pad_visual_batch(
+            batch_pixel_values,
+            batch_aspect_ratio_ids,
+            batch_aspect_ratio_mask,
+            max_num_images=max_num_images,
+            max_num_tiles=max_num_tiles,
+            pad_value=0,
+        )
+
+        cross_attention_mask = pad_cross_attention_mask(batch_cross_attention_mask)
 
         batch_dict = dict(
             prompt_input_ids=prompt_input_ids,
